@@ -10,7 +10,10 @@ const PORT = process.env.PORT || 5000;
 
 // CORS setup for frontend
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: [
+    'http://localhost:3000',
+    'https://ai-food-creator.netlify.app'
+  ],
 }));
 
 app.use(express.json());
