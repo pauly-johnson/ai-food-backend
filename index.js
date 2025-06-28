@@ -43,7 +43,7 @@ app.post('/generate-recipe', async (req, res) => {
   if (!Number.isInteger(serves) || serves <= 0) serves = 2;
 
   // Compose prompt for GPT-4.1
-  const prompt = `Generate a detailed cooking recipe for ${serves} servings using the following:\nIngredients: ${ingredients.join(', ')}\nCooking Style: ${style}\nMeal Type: ${mealType || 'Any'}\nUser Preference: ${why || 'None'}\n\nRespond in JSON with these fields: name (string), serves (number), cookingTime (string), ingredients (array of strings), instructions (array of strings).`;
+  const prompt = `Generate a detailed cooking recipe for ${serves} servings using the following:\nIngredients: ${ingredients.join(', ')}\nCooking Style: ${style}\nMeal Type: ${mealType || 'Any'}\nUser Preference: ${why || 'None'}\n\nIn the JSON response, always include a 'serves' field (number) and make sure the recipe name or summary clearly states how many servings the recipe makes. Respond in JSON with these fields: name (string), serves (number), cookingTime (string), ingredients (array of strings), instructions (array of strings).`;
 
   try {
     const client = ModelClient(endpoint, new AzureKeyCredential(apiKey));
