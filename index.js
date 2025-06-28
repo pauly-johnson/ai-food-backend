@@ -29,6 +29,7 @@ function validateRequest(body) {
   if (typeof body.style !== 'string') return 'Missing or invalid style';
   if (typeof body.mealType !== 'string') return 'Missing or invalid mealType';
   if (typeof body.why !== 'string') return 'Missing or invalid why';
+  if (body.serves !== undefined && (!Number.isInteger(body.serves) || body.serves <= 0)) return 'Missing or invalid serves';
   return null;
 }
 
@@ -38,9 +39,11 @@ app.post('/generate-recipe', async (req, res) => {
   if (error) return res.status(400).json({ error });
 
   const { ingredients, style, mealType, why } = req.body;
+  let serves = req.body.serves;
+  if (!Number.isInteger(serves) || serves <= 0) serves = 2;
 
   // Compose prompt for GPT-4.1
-  const prompt = `Generate a detailed cooking recipe using the following:\nIngredients: ${ingredients.join(', ')}\nCooking Style: ${style}\nMeal Type: ${mealType || 'Any'}\nUser Preference: ${why || 'None'}\n\nRespond in JSON with these fields: name (string), cookingTime (string), ingredients (array of strings), instructions (array of strings).`;
+  const prompt = `Generate a detailed cooking recipe for ${serves} servings using the following:\nIngredients: ${ingredients.join(', ')}\nCooking Style: ${style}\nMeal Type: ${mealType || 'Any'}\nUser Preference: ${why || 'None'}\n\nRespond in JSON with these fields: name (string), serves (number), cookingTime (string), ingredients (array of strings), instructions (array of strings).`;
 
   try {
     const client = ModelClient(endpoint, new AzureKeyCredential(apiKey));
@@ -70,6 +73,8 @@ app.post('/generate-recipe', async (req, res) => {
       console.error('Incomplete recipe data from AI:', recipe);
       return res.status(500).json({ error: 'Incomplete recipe data from AI.', raw: recipe });
     }
+    // Ensure serves is included in the response
+    recipe.serves = serves;
     res.json(recipe);
   } catch (err) {
     console.error('Server error:', err);
