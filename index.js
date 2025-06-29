@@ -30,6 +30,7 @@ function validateRequest(body) {
   if (typeof body.mealType !== 'string') return 'Missing or invalid mealType';
   if (typeof body.why !== 'string') return 'Missing or invalid why';
   if (body.serves !== undefined && (!Number.isInteger(body.serves) || body.serves <= 0)) return 'Missing or invalid serves';
+  if (body.preferences !== undefined && !Array.isArray(body.preferences)) return 'Missing or invalid preferences';
   return null;
 }
 
@@ -41,9 +42,10 @@ app.post('/generate-recipe', async (req, res) => {
   const { ingredients, style, mealType, why } = req.body;
   let serves = req.body.serves;
   if (!Number.isInteger(serves) || serves <= 0) serves = 2;
+  let preferences = Array.isArray(req.body.preferences) ? req.body.preferences : [];
 
   // Compose prompt for GPT-4.1
-  const prompt = `Generate a detailed cooking recipe for ${serves} servings using the following:\nIngredients: ${ingredients.join(', ')}\nCooking Style: ${style}\nMeal Type: ${mealType || 'Any'}\nUser Preference: ${why || 'None'}\n\nIn the JSON response, always include a 'serves' field (number) and make sure the recipe name or summary clearly states how many servings the recipe makes. Respond in JSON with these fields: name (string), serves (number), cookingTime (string), ingredients (array of strings), instructions (array of strings).`;
+  const prompt = `Generate a detailed cooking recipe for ${serves} servings using the following:\nIngredients: ${ingredients.join(', ')}\nCooking Style: ${style}\nMeal Type: ${mealType || 'Any'}\nUser Preference: ${why || 'None'}\nDietary Preferences or Health Goals: ${preferences.length > 0 ? preferences.join(', ') : 'None'}\n\nIn the JSON response, always include a 'serves' field (number), a 'preferences' field (array of strings), and make sure the recipe name or summary clearly states how many servings the recipe makes and reflects the preferences if possible. Respond in JSON with these fields: name (string), serves (number), preferences (array of strings), cookingTime (string), ingredients (array of strings), instructions (array of strings).`;
 
   try {
     const client = ModelClient(endpoint, new AzureKeyCredential(apiKey));
@@ -73,8 +75,9 @@ app.post('/generate-recipe', async (req, res) => {
       console.error('Incomplete recipe data from AI:', recipe);
       return res.status(500).json({ error: 'Incomplete recipe data from AI.', raw: recipe });
     }
-    // Ensure serves is included in the response
+    // Ensure serves and preferences are included in the response
     recipe.serves = serves;
+    recipe.preferences = preferences;
     res.json(recipe);
   } catch (err) {
     console.error('Server error:', err);
